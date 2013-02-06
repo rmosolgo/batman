@@ -69,9 +69,12 @@ class Batman.PolymorphicHasManyAssociation extends Batman.HasManyAssociation
             record = existingRecord
           else
             if newRelations.length > 0
-              savedRecord = newRelations.shift()
-              savedRecord._withoutDirtyTracking -> @fromJSON jsonObject
-              record = savedRecord
+              matches = newRelations.filter (r) -> association.matches(r, jsonObject)
+              savedRecord = matches[0]
+              if savedRecord?
+                newRelations.splice newRelations.indexOf(savedRecord), 1
+                savedRecord._withoutDirtyTracking -> @fromJSON jsonObject
+                record = savedRecord
           record = relatedModel._mapIdentity(record)
           existingRelations.add record
 
@@ -82,3 +85,6 @@ class Batman.PolymorphicHasManyAssociation extends Batman.HasManyAssociation
       else
         Batman.developer.error "Can't decode model #{association.options.name} because it hasn't been loaded yet!"
       existingRelations
+
+  matches: (relation, jsonObject) ->
+    true
