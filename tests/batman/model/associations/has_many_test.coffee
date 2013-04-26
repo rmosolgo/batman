@@ -103,7 +103,7 @@ asyncTest "hasMany associations are loaded and custom url is used", 2, ->
 
 asyncTest "hasMany associations are loaded and custom url function has the parent's context", 3, ->
   @Store._batman.get('associations').get('products').options.url = -> "/stores/#{@get('id')}/products"
-  
+
   associationSpy = spyOn(@productAdapter, 'perform')
 
   @Store.find 1, (err, store) =>
@@ -262,7 +262,7 @@ asyncTest "hasMany associations are saved via the parent model", 5, ->
   store = new @Store name: 'Zellers'
   product1 = new @Product name: 'Gizmo'
   product2 = new @Product name: 'Gadget'
-  store.set 'products', new Batman.Set(product1, product2)
+  store.get('products').add(product1, product2)
 
   storeSaveSpy = spyOn store, 'save'
   store.save (err, record) =>
@@ -625,6 +625,29 @@ asyncTest "regression test: identity mapping works", ->
       deepEqual currentIDs, originalIDs
       deepEqual @ProductVariant.get('loaded').mapToProperty('id').sort(), [1,2,3,4,5,6]
       QUnit.start()
+
+asyncTest "batch loaded hasMany parents should have association sets which index their children", 1, ->
+  @Store.load (err, stores) =>
+    throw err if err
+    store = stores[0]
+    products = store.get('products')
+    newProduct = @Product.createFromJSON(id: 42, name: "New Product", store_id: 1)
+    ok products.has(newProduct)
+    QUnit.start()
+
+test "hasMany parents who's children are decoded before their ID should have association sets which index their children", 3, ->
+  @store = new @Store
+  @store.fromJSON
+    name: "whatevs"
+    products: [
+      {id: 21, name: "new product", store_id: 1}
+    ]
+  products = @store.get('products')
+  equal products.length, 1
+  @store.fromJSON {id: 1}
+  newProduct = @Product.createFromJSON(id: 42, name: "New Product", store_id: 1)
+  equal products.length, 2
+  equal products.foreignKeyValue, 1
 
 QUnit.module "Batman.Model hasMany Associations with inverse of",
   setup: ->

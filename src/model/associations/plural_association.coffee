@@ -36,6 +36,7 @@ class Batman.PluralAssociation extends Batman.Association
     @_setsByRecord.forEach (record, set) =>
       return if foundSet?
       foundSet = set if @indexValueForRecord(record) == indexValue
+
     if foundSet?
       foundSet.foreignKeyValue = indexValue
       return foundSet
@@ -50,8 +51,9 @@ class Batman.PluralAssociation extends Batman.Association
     return unless self.getRelatedModel()
 
     # Check whether the relation has already been set on this model
-    if setInAttributes = self.getFromAttributes(this)
-      setInAttributes
+    setInAttributes = self.getFromAttributes(this)
+    if setInAttributes? && !setInAttributes.foreignKeyValue? && !self.indexValueForRecord(this)?
+      return setInAttributes
     else
       relatedRecords = self.setForRecord(this)
       self.setIntoAttributes(this, relatedRecords)

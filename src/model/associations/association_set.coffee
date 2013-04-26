@@ -1,6 +1,8 @@
 #= require ../../set/set_sort
 
 class Batman.AssociationSet extends Batman.SetSort
+  @accessor 'loaded', Batman.Property.defaultAccessor
+
   constructor: (@foreignKeyValue, @association) ->
     base = new Batman.Set
     super(base, '_batmanID')
@@ -17,8 +19,6 @@ class Batman.AssociationSet extends Batman.SetSort
       loadOptions.collectionUrl = @association.options.url
       loadOptions.urlContext = @association.parentSetIndex().get(@foreignKeyValue)
     loadOptions
-
-  @accessor 'loaded', Batman.Property.defaultAccessor
   markAsLoaded: ->
     @set 'loaded', true
     @fire('loaded')
