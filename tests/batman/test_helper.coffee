@@ -37,6 +37,11 @@ QUnit.reset = ->
   if Batman.currentApp?
     Batman.currentApp.stop()
     Batman.currentApp = null
+
+  for name, aYield of Batman.DOM.Yield.yields
+    if aYield.property('containerNode').event('change').handlers?.length > 0
+      aYield.property('containerNode').event('change').handlers = []
+
   window.location.hash = ""
   if window.history?.pushState? and window.location.href isnt originalHref
     window.history.pushState(null, '', originalHref)
