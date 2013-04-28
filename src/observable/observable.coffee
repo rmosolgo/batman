@@ -29,18 +29,18 @@ Batman.Observable =
       @property(key).forget(observer)
     else
       @_batman.properties?.forEach (key, property) -> property.forget()
-    @
+    this
 
   # `observe` takes a key and a callback. Whenever the value for that key changes, your
   # callback will be called in the context of the original object.
   observe: (key, args...) ->
     @property(key).observe(args...)
-    @
+    this
 
   observeAndFire: (key, args...) ->
     @property(key).observeAndFire(args...)
-    @
+    this
 
   observeOnce: (key, args...) ->
     @property(key).observeOnce(args...)
-    @
+    this

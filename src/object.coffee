@@ -4,6 +4,8 @@
 #= require ./observable/observable
 #= require ./hash/simple_hash
 
+BATMAN_ID_COUNTER = 0
+
 getAccessorObject = (base, accessor) ->
   if typeof accessor is 'function'
     accessor = {get: accessor}
@@ -76,14 +78,50 @@ ObjectFunctions =
     delete @_batman.promises[key]
     return
 
+class Batman.InternalObject extends Batman._Batman
+
+  Batman.extend @prototype, ObjectFunctions, Batman.EventEmitter, Batman.Observable
+
+  constructor: ->
+    @_batman = @object = @
+
+  # Fake looking like an _Batman object
+  event: (key) ->
+    storageKey = "e-#{key}"
+    @[storageKey] ?= new Batman.Event(this, key)
+    @[storageKey]
+  property: (key) ->
+    storageKey = "p-#{key}"
+    @[storageKey] ?= new Batman.Keypath(this, key)
+    @[storageKey]
+
+  check: -> true
+
+  _batmanID: ->
+    @_batman.check(@)
+    @_batman.id ?= BATMAN_ID_COUNTER++
+    @_batman.id
+
+  hashKey: ->
+    return if typeof @isEqual is 'function'
+    @_batman.hashKey ||= "<Batman.Object #{@_batmanID()}>"
+
+  @accessor: -> @prototype._defineAccessor(arguments...)
+  accessor: @_defineAccessor
+
+  @wrapAccessor: -> @prototype._defineWrapAccessor(arguments...)
+  wrapAccessor: @_defineWrapAccessor
+
+  @observeAll: -> @::observe.apply @prototype, arguments
+
 # `Batman.Object` is the base class for all other Batman objects. It is not abstract.
 class BatmanObject extends Object
   Batman.initializeObject(this)
   Batman.initializeObject(@prototype)
 
   # Make every subclass and their instances observable.
-  Batman.mixin @prototype, ObjectFunctions, Batman.EventEmitter, Batman.Observable
-  Batman.mixin @,          ObjectFunctions, Batman.EventEmitter, Batman.Observable
+  Batman.extend @prototype, ObjectFunctions, Batman.EventEmitter, Batman.Observable
+  Batman.extend @,          ObjectFunctions, Batman.EventEmitter, Batman.Observable
 
   @classMixin: -> Batman.mixin @, arguments...
   @mixin: -> @classMixin.apply @prototype, arguments
@@ -109,10 +147,9 @@ class BatmanObject extends Object
     @_batman = new Batman._Batman(@)
     @mixin mixins...
 
-  counter = 0
   _batmanID: ->
     @_batman.check(@)
-    @_batman.id ?= counter++
+    @_batman.id ?= BATMAN_ID_COUNTER++
     @_batman.id
 
   hashKey: ->
