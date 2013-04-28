@@ -2,15 +2,18 @@
 
 class Batman.DOM.ViewBinding extends Batman.DOM.AbstractBinding
   skipChildren: true
+  bindImmediately: false
   onlyObserve: Batman.BindingDefinitionOnlyObserve.Data
 
   constructor: ->
     super
     @renderer.prevent 'rendered'
     @node.removeAttribute 'data-view'
+    @bind()
 
   dataChange: (viewClassOrInstance) ->
     return unless viewClassOrInstance?
+    renderer = @renderer
     if viewClassOrInstance.isView
       @view = viewClassOrInstance
       @view.set 'context', @renderContext
@@ -19,13 +22,12 @@ class Batman.DOM.ViewBinding extends Batman.DOM.AbstractBinding
       @view = new viewClassOrInstance
         node: @node
         context: @renderContext
-        parentView: @renderer.view
+        parentView: renderer.view
 
     @view.on 'ready', =>
-      @renderer.allowAndFire 'rendered'
+      renderer.allowAndFire 'rendered'
 
-    @forget()
-    @_batman.properties?.forEach (key, property) -> property.die()
+    @die()
 
   die: ->
     @view = null

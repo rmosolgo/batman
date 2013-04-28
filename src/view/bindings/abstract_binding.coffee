@@ -6,7 +6,7 @@
 # the automatic trigger and dependency system that Batman.Objects use. Every, and I really mean every method
 # which uses filters has to be defined in terms of a new binding. This is so that the proper order of
 # objects is traversed and any observers are properly attached.
-class Batman.DOM.AbstractBinding extends Batman.Object
+class Batman.DOM.AbstractBinding extends Batman.InternalObject
   # A beastly regular expression for pulling keypaths out of the JSON arguments to a filter.
   # Match either strings, object literals, or keypaths.
   keypath_rx = ///
@@ -47,7 +47,7 @@ class Batman.DOM.AbstractBinding extends Batman.Object
           # Get any argument keypaths from the context stored at parse time.
           args = self.filterArguments[i].map (argument) ->
             if argument._keypath
-              self.renderContext.get(argument._keypath)
+              renderContext.get(argument._keypath)
             else
               argument
 
@@ -100,6 +100,8 @@ class Batman.DOM.AbstractBinding extends Batman.Object
   skipParseFilter: false
 
   constructor: (definition) ->
+    super()
+
     {@node, @keyPath, context: @renderContext, @renderer} = definition
     @onlyObserve = definition.onlyObserve if definition.onlyObserve
     @skipParseFilter = definition.skipParseFilter if definition.skipParseFilter?
@@ -140,19 +142,6 @@ class Batman.DOM.AbstractBinding extends Batman.Object
     if @shouldSet
       @dataChange?(value, @node)
       @fire 'dataChange', value, @node
-
-  die: ->
-    @forget()
-    @_batman.properties?.forEach (key, property) -> property.die()
-    @fire('die')
-
-    @node = null
-    @keyPath = null
-    @renderContext = null
-    @renderer = null
-
-    @dead = true
-    return true
 
   parseFilter: ->
     # Store the function which does the filtering and the arguments (all except the actual value to apply the
@@ -211,3 +200,17 @@ class Batman.DOM.AbstractBinding extends Batman.Object
         bool || string || object
       start + replacement
     JSON.parse("[#{segment}]")
+
+  die: ->
+    for own k, v of @
+      if k.slice(0, 2) == 'p-'
+        v.die()
+    @fire('die')
+
+    @node = null
+    @keyPath = null
+    @renderContext = null
+    @renderer = null
+
+    @dead = true
+    return true
