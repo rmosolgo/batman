@@ -86,9 +86,9 @@ class Batman.InternalObject extends Batman._Batman
     @_batman = @object = @
 
   # Fake looking like an _Batman object
-  event: (key) ->
+  event: (key, createEvent = true) ->
     storageKey = "e-#{key}"
-    @[storageKey] ?= new Batman.Event(this, key)
+    @[storageKey] ?= new Batman.Event(this, key) if createEvent
     @[storageKey]
   property: (key) ->
     storageKey = "p-#{key}"
