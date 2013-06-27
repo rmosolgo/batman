@@ -7,7 +7,7 @@ Batman.DOM.events =
     Batman.DOM.addEventListener node, eventName, (event, args...) ->
       return if event.metaKey || event.ctrlKey || event.button == 1
 
-      Batman.DOM.preventDefault event
+      Batman.DOM.preventDefault event unless node.target.attributes["allowDefault"]?
       return if not Batman.DOM.eventIsAllowed(eventName, event)
 
       callback node, event, args..., context
