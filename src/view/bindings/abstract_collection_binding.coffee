@@ -20,7 +20,7 @@ class Batman.DOM.AbstractCollectionBinding extends Batman.DOM.AbstractAttributeB
       #   @handleItemsAdded(@collection.toArray()) if @collection.length
 
       # else
-      @collection.observeAndFire('toArray', @handleArrayChanged)
+      @collection.observe('toArray', @handleArrayChanged, fireImmediately: true)
 
       return true
 

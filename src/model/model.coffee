@@ -48,7 +48,7 @@ class Batman.Model extends Batman.Object
     decode: (x) -> x
 
   # Attach encoders and decoders for the primary key, and update them if the primary key changes.
-  @observeAndFire 'primaryKey', (newPrimaryKey, oldPrimaryKey) ->
+  @observe 'primaryKey', fireImmediately: true, (newPrimaryKey, oldPrimaryKey) ->
     @encode oldPrimaryKey, {encode: false, decode: false} # Remove encoding for the previous primary key
     @encode newPrimaryKey, {encode: false, decode: @defaultEncoder.decode}
 
@@ -125,7 +125,7 @@ class Batman.Model extends Batman.Object
       options = { data: options }
 
     @loadWithOptions options, callback
-  
+
   @loadWithOptions: (options, callback) ->
     @fire 'loading', options
     @_doStorageOperation 'readAll', options, (err, records, env) =>

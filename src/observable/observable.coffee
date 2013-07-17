@@ -5,8 +5,10 @@
 # It is applied by default to every instance of `Batman.Object` and subclasses.
 Batman.Observable =
   isObservable: true
+
   hasProperty: (key) ->
     @_batman?.properties?.hasKey?(key)
+
   property: (key) ->
     Batman.initializeObject @
     propertyClass = @propertyClass or Batman.Keypath
@@ -15,10 +17,13 @@ Batman.Observable =
       return properties.getObject(key) or properties.setObject( key, new propertyClass(this, key ) )
     else
       return properties.getString(key) or properties.setString(key, new propertyClass(this, key))
+
   get: (key) ->
     @property(key).getValue()
+
   set: (key, val) ->
     @property(key).setValue(val)
+
   unset: (key) ->
     @property(key).unsetValue()
 
@@ -32,18 +37,11 @@ Batman.Observable =
       @property(key).forget(observer)
     else
       @_batman.properties?.forEach (key, property) -> property.forget()
-    @
+
+    return this
 
   # `observe` takes a key and a callback. Whenever the value for that key changes, your
   # callback will be called in the context of the original object.
-  observe: (key, args...) ->
-    @property(key).observe(args...)
-    @
-
-  observeAndFire: (key, args...) ->
-    @property(key).observeAndFire(args...)
-    @
-
-  observeOnce: (key, args...) ->
-    @property(key).observeOnce(args...)
-    @
+  observe: (key, handler, options) ->
+    @property(key).observe(handler, options)
+    return this

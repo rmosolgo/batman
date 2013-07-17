@@ -331,31 +331,29 @@ test "observe(key, callback) will only fire once and will not break when there's
   equal newVal, 'newVal'
   ok oldVal == oldBar, "oldVal is not oldBar"
   equal key, 'foo.bar.baz.foo.bar'
+
 ###
-# observeAndFire(key, callback)
+# observe(key, callback, {options})
 ###
-test "observeAndFire(key, callback) adds the callback and then calls it immediately", ->
+test "observe(key, callback, {fireImmediately:true}) adds the callback and then calls it immediately", ->
   callback = createSpy()
-  @obj.observeAndFire 'foo.bar.baz.qux', callback
+  @obj.observe 'foo.bar.baz.qux', callback, {fireImmediately: true}
   deepEqual callback.lastCallArguments, ['quxVal', 'quxVal', 'foo.bar.baz.qux']
 
-test "observeAndFire(key, callback) fires with the correct current value, even if a property source was changed after the dependent property was cached but while the dependent property was not being observed", ->
+test "observe(key, callback, {fireImmediately:true}) fires with the correct current value, even if a property source was changed after the dependent property was cached but while the dependent property was not being observed", ->
   klass = class extends Batman.Object
     @accessor 'foo', -> @get('bar')
   obj = new klass
   obj.set('bar', 1) # initialize source
   obj.get('foo') # cache dependent
   obj.set('bar', 2) # change source
-  obj.observeAndFire('foo', spy = createSpy())
+  obj.observe('foo', spy = createSpy(), fireImmediately: true)
   equal spy.lastCallArguments[0], 2
 
-###
-# observeOnce(key, callback)
-###
-test "observeOnce(key, callback) adds the callback and removes it after the first fire", ->
+test "observe(key, callback, {once: true}) adds the callback and removes it after the first fire", ->
   callback = createSpy()
   oldVal = @obj.get 'foo'
-  @obj.observeOnce 'foo', callback
+  @obj.observe 'foo', callback, {once: true}
 
   @obj.set 'foo', 'batman'
   @obj.set 'foo', 'gotham'
@@ -365,6 +363,24 @@ test "observeOnce(key, callback) adds the callback and removes it after the firs
   equal newValue, 'batman'
   equal oldVal, oldValue
   equal key, 'foo'
+
+test "observe(key, {options}, callback) is the same as observe(key, callback, {options})", ->
+  callback = createSpy()
+  @obj.observe 'foo.bar.baz.qux', callback, {fireImmediately: true}
+  deepEqual callback.lastCallArguments, ['quxVal', 'quxVal', 'foo.bar.baz.qux']
+  @obj.observe 'foo.bar.baz.qux', {fireImmediately: true}, callback
+  deepEqual callback.lastCallArguments, ['quxVal', 'quxVal', 'foo.bar.baz.qux']
+
+test "observe(key, callback, {fireImmediately:true, once:true}) calls callback immediately and fires event once", ->
+  callback = createSpy()
+  oldVal = @obj.get 'foo'
+  @obj.observe 'foo', callback, {once: true, fireImmediately:true}
+  equal callback.callCount, 1
+
+  @obj.set 'foo', 'batman'
+  @obj.set 'foo', 'gotham'
+
+  equal callback.callCount, 2
 
 ###
 # forget(key [, callback])

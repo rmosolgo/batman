@@ -197,21 +197,25 @@ class Batman.Property extends Batman.PropertyEvent
       @removeHandler(handler)
     else
       @clearHandlers()
-  observeAndFire: (handler) ->
-    @observe(handler)
-    handler.call(@base, @value, @value, @key)
-  observe: (handler) ->
+
+  observe: (handler, options) ->
+    if typeof handler != "function"
+      [handler, options] = [options, handler]
+
+    if options?.once
+      property = this
+      originalHandler = handler
+      handler = ->
+        originalHandler.apply(this, arguments)
+        property.removeHandler(handler)
+
     @addHandler(handler)
     @getValue() unless @sources?
-    this
-  observeOnce: (originalHandler) ->
-    self = @
-    handler = ->
-      originalHandler.apply(@, arguments)
-      self.removeHandler(handler)
-    @addHandler(handler)
-    @getValue() unless @sources?
-    this
+
+    if options?.fireImmediately
+      (originalHandler || handler).call(@base, @value, @value, @key)
+
+    return this
 
   _removeHandlers: ->
     handler = @sourceChangeHandler()
