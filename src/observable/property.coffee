@@ -202,6 +202,16 @@ class Batman.Property extends Batman.PropertyEvent
     if typeof handler != "function"
       [handler, options] = [options, handler]
 
+    if options?.debounce
+      originalHandler = handler
+      timer = null
+      handler = ->
+        return if timer
+        timer = setTimeout ->
+          originalHandler.apply(this, arguments)
+          timer = null
+        , options.debounce
+
     if options?.once
       property = this
       originalHandler = handler

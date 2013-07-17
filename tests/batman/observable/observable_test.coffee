@@ -382,6 +382,27 @@ test "observe(key, callback, {fireImmediately:true, once:true}) calls callback i
 
   equal callback.callCount, 2
 
+asyncTest "observe(key, callback, {debounce: interval}) debounces rapid fire events", ->
+  callback = createSpy()
+  @obj.observe('foo', callback, {debounce: 100})
+
+  for i in [1..100]
+    @obj.set 'foo', 'batman' + i
+
+  equal callback.callCount, 0
+
+  setTimeout =>
+    equal callback.callCount, 1
+
+    for i in [1..100]
+      @obj.set 'foo', 'batman' + i
+
+    setTimeout =>
+      equal callback.callCount, 2
+      QUnit.start()
+    , 200
+  , 200
+
 ###
 # forget(key [, callback])
 ###
