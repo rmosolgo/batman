@@ -45,3 +45,11 @@ Batman.Observable =
   observe: (key, handler, options) ->
     @property(key).observe(handler, options)
     return this
+
+  observeAndFire: (key, handler) ->
+    Batman.developer.deprecated("observeAndFire", "Please use observe(#{key}, fireImmediately: true, handler) instead.")
+    @observe(key, handler, fireImmediately: true)
+
+  observeOnce: (key, handler) ->
+    Batman.developer.deprecated("observeOnce", "Please use observe(#{key}, once: true, handler) instead.")
+    @observe(key, handler, once: true)
