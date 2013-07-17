@@ -222,7 +222,7 @@ class Batman.Property extends Batman.PropertyEvent
     @addHandler(handler)
     @getValue() unless @sources?
 
-    if options?.fireImmediately
+    if options?.immediate
       (originalHandler || handler).call(@base, @value, @value, @key)
 
     return this

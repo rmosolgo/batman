@@ -120,7 +120,7 @@ class Batman.DOM.AbstractBinding extends Batman.Object
 
     # Observe the value of this binding's `filteredValue` and fire it immediately to update the node.
     if @onlyObserve in [onlyAll, onlyData]
-      @observe 'filteredValue', @_fireDataChange, fireImmediately: true
+      @observe 'filteredValue', @_fireDataChange, immediate: true
 
     @view._addChildBinding(this)
 
