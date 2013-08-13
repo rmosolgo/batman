@@ -99,17 +99,6 @@ task 'test:travis', 'run the tests once using PhantomJS', (options) ->
   pipedExec './node_modules/.bin/karma', 'start', '--single-run', '--browsers', 'PhantomJS', './karma.conf.coffee', (code) ->
     process.exit(code)
 
-task 'test:doc', 'run the percolate test suite', (options) ->
-  muffin.run
-    files: glob.sync('./src/**/*.coffee').concat(glob.sync('./tests/batman/.coffee')).concat(glob.sync('./docs/**/*.coffee'))
-    options: options
-    map:
-      'tests/batman/(.+)_(test|helper).coffee'   : (matches) -> true
-      'docs/percolate\.coffee'                   : (matches) -> muffin.compileScript(matches[0], 'docs/percolate.js', options)
-    after: ->
-      pipedExec 'docs/percolate.js', '--test-only', (code) ->
-        process.exit(code) unless options.watch
-
 task 'stats', 'compile the files and report on their final size', (options) ->
   muffin.statFiles(glob.sync('./src/**/*.coffee').concat(glob.sync('./lib/**/*.js')), options)
 
