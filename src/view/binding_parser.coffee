@@ -41,6 +41,7 @@ class Batman.BindingParser extends Batman.Object
     isViewBacked = false
     if node.getAttribute and node.attributes
       bindings = []
+      bindingClasses = {}
       for attribute in node.attributes
         continue unless attribute.nodeName?.substr(0, 5) is "data-"
         name = attribute.nodeName.substr(5)
@@ -63,6 +64,12 @@ class Batman.BindingParser extends Batman.Object
             bindingDefinition = new Batman.DOM.ReaderBindingDefinition(node, value, @view)
             reader(bindingDefinition)
 
+        if binding?
+          if existing = bindingClasses[binding.constructor.name]
+            bindingClasses[binding.constructor.name].push(binding)
+          else
+            bindingClasses[binding.constructor.name] = [binding]
+
         if binding?.initialized # FIXME when nextNode gets less stupid this can be immediate
           @once('bindingsInitialized', do (binding) -> -> binding.initialized.call(binding))
 
@@ -74,6 +81,10 @@ class Batman.BindingParser extends Batman.Object
 
     if isViewBacked and backingView = Batman._data(node, 'view')
       backingView.initializeBindings()
+
+    if bindingClasses
+      for boundClass in bindingClasses
+        boundClass.finalize?(node, bindingClasses[boundClass])
 
     return isViewBacked
 
