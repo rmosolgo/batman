@@ -102,7 +102,11 @@ Batman.DOM.readers =
         node.parentNode.removeChild(node)
 
   yield: (definition) ->
-    yieldObject = Batman.DOM.Yield.withName(definition.keyPath)
-    yieldObject.set('containerNode', definition.node)
+    {node, keypath} = definition
+
+    yieldObject = Batman.DOM.Yield.withName(keyPath)
+    yieldObject.set('containerNode', node)
+
+    node.removeAttribute('data-yield')
 
     skipChildren: true

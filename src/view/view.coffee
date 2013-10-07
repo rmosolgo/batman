@@ -150,7 +150,7 @@ class Batman.View extends Batman.Object
   # subclass, if you want to build a custom node.
   loadView: (_node) ->
     if (html = @get('html'))?
-      node = _node || document.createElement('div')
+      node = _node || Batman.DOM.Yield.withName(@contentFor)?.containerNode || document.createElement('div')
       Batman.DOM.setInnerHTML(node, html)
       return node
 
