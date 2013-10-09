@@ -14,7 +14,6 @@ class Batman.DOM.ContextBinding extends Batman.DOM.AbstractAttributeBinding
     else
       "data-#{@bindingName}"
 
-    @node.removeAttribute(contextAttribute)
     @node.insertBefore(document.createComment("batman-#{contextAttribute}=\"#{@keyPath}\""), @node.firstChild)
 
   dataChange: (proxiedObject) ->

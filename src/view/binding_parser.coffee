@@ -54,13 +54,23 @@ class Batman.BindingParser extends Batman.Object
       for [name, attr, value] in bindings.sort(@_sortBindings)
         continue if isViewBacked and viewBackedBindings.indexOf(name) == -1
 
+        bindingIdentifier = if attr
+          "#{name}-#{attr}=#{value}"
+        else
+          "#{name}=#{value}"
+
+        if parsedBindings = Batman._data(node, 'bindings')
+          continue if parsedBindings[bindingIdentifier]
+        else
+          parsedBindings = Batman._data(node, 'bindings', {})
+
         binding = if attr
           if reader = Batman.DOM.attrReaders[name]
-            bindingDefinition = new Batman.DOM.AttrReaderBindingDefinition(node, attr, value, @view)
+            bindingDefinition = new Batman.DOM.AttrReaderBindingDefinition(node, attr, value, @view, bindingIdentifier)
             reader(bindingDefinition)
         else
           if reader = Batman.DOM.readers[name]
-            bindingDefinition = new Batman.DOM.ReaderBindingDefinition(node, value, @view)
+            bindingDefinition = new Batman.DOM.ReaderBindingDefinition(node, value, @view, bindingIdentifier)
             reader(bindingDefinition)
 
         if binding?.initialized # FIXME when nextNode gets less stupid this can be immediate

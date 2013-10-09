@@ -91,10 +91,11 @@ class Batman.DOM.AbstractBinding extends Batman.Object
   skipParseFilter: false
 
   constructor: (definition) ->
-    {@node, @keyPath, @view} = definition
+    {@node, @keyPath, @view, @identifier} = definition
     @onlyObserve = definition.onlyObserve if definition.onlyObserve
     @skipParseFilter = definition.skipParseFilter if definition.skipParseFilter?
 
+    Batman._data(@node, "bindings")?[@identifier] = this
 
     # Pull out the `@key` and filter from the `@keyPath`.
     @parseFilter() if not @skipParseFilter
@@ -139,6 +140,7 @@ class Batman.DOM.AbstractBinding extends Batman.Object
   die: ->
     @forget()
     @_batman.properties?.forEach (key, property) -> property.die()
+    delete Batman._data(@node, "bindings")?[@identifier]
 
     @node = null
     @keyPath = null

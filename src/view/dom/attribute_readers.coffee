@@ -1,7 +1,7 @@
 #= require ./dom
 
 class Batman.DOM.AttrReaderBindingDefinition
-  constructor: (@node, @attr, @keyPath, @view) ->
+  constructor: (@node, @attr, @keyPath, @view, @identifier) ->
 
 # `Batman.DOM.attrReaders` contains all the DOM directives which take an argument in their name, in the
 # `data-dosomething-argument="keypath"` style. This means things like foreach, binding attributes like

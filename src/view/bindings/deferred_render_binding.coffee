@@ -11,6 +11,5 @@ class Batman.DOM.DeferredRenderBinding extends Batman.DOM.AbstractBinding
 
   dataChange: (value) ->
     if value and not @backingView.isBound
-      @node.removeAttribute('data-renderif')
       @backingView.initializeBindings()
 

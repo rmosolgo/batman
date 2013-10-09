@@ -14,10 +14,6 @@ class Batman.DOM.SelectBinding extends Batman.DOM.AbstractBinding
   constructor: (definition) ->
     super
 
-    @node.removeAttribute('data-bind')
-    @node.removeAttribute('data-source')
-    @node.removeAttribute('data-target')
-
     @backingView.on 'childBindingAdded', @childBindingAdded
     @backingView.initializeBindings()
 

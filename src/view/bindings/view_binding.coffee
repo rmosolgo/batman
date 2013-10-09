@@ -24,13 +24,10 @@ class Batman.DOM.ViewBinding extends Batman.DOM.AbstractBinding
       @fromViewClass = true
       @viewInstance = new viewClassOrInstance
 
-    @node.removeAttribute('data-view')
-
     if options = @viewInstance.constructor._batman.get('options')
       for option in options
         attributeName = "data-view-#{option.toLowerCase()}"
         if keyPath = @node.getAttribute(attributeName)
-          @node.removeAttribute(attributeName)
           definition = new Batman.DOM.ReaderBindingDefinition(@node, keyPath, @superview)
           new Batman.DOM.ViewArgumentBinding(definition, option, @viewInstance)
 
