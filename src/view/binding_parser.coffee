@@ -59,10 +59,7 @@ class Batman.BindingParser extends Batman.Object
         else
           "#{name}=#{value}"
 
-        if parsedBindings = Batman._data(node, 'bindings')
-          continue if parsedBindings[bindingIdentifier]
-        else
-          parsedBindings = Batman._data(node, 'bindings', {})
+        continue if Batman._data(node, 'bindings')?[bindingIdentifier]
 
         binding = if attr
           if reader = Batman.DOM.attrReaders[name]

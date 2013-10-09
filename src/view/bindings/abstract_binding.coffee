@@ -95,7 +95,8 @@ class Batman.DOM.AbstractBinding extends Batman.Object
     @onlyObserve = definition.onlyObserve if definition.onlyObserve
     @skipParseFilter = definition.skipParseFilter if definition.skipParseFilter?
 
-    Batman._data(@node, "bindings")?[@identifier] = this
+    if nodeBindings = Batman._data(@node, "bindings") || nodeBindings = Batman._data(@node, "bindings", {})
+      nodeBindings[@identifier] = this
 
     # Pull out the `@key` and filter from the `@keyPath`.
     @parseFilter() if not @skipParseFilter
