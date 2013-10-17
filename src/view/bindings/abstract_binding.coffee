@@ -38,6 +38,9 @@ class Batman.DOM.AbstractBinding extends Batman.Object
   @accessor 'filteredValue',
     get: ->
       unfilteredValue = @get('unfilteredValue')
+      if unfilteredValue?.valueForBinding
+        unfilteredValue = unfilteredValue.valueForBinding()
+
       self = this
       if @filterFunctions.length > 0
         result = @filterFunctions.reduce((value, fn, i) ->

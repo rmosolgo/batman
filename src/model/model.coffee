@@ -1,5 +1,6 @@
 #= require ../object
 #= require ../utilities/state_machine
+#= require ./query
 
 class Batman.Model extends Batman.Object
   # Override this property to define the key which storage adapters will use to store instances of this model under.
@@ -83,22 +84,10 @@ class Batman.Model extends Batman.Object
         Batman.developer.error("Please define #{Batman.functionName(@)}.resourceName in order for your model to be minification safe.") if Batman.config.minificationErrors
         Batman.helpers.underscore(Batman.functionName(@))
 
-  @classAccessor 'all',
-    get: ->
-      @_batman.check(@)
-      if @::hasStorage() and !@_batman.allLoadTriggered
-        @load()
-        @_batman.allLoadTriggered = true
-      @get('loaded')
+  @classAccessor 'all', -> new Batman.Query(this)
 
-    set: (k, v) -> @set('loaded', v)
-
-  @classAccessor 'loaded',
-    get: -> @_loaded ||= new Batman.Set
-    set: (k, v) -> @_loaded = v
-
-  @classAccessor 'first', -> @get('all').toArray()[0]
-  @classAccessor 'last', -> x = @get('all').toArray(); x[x.length - 1]
+  @classAccessor 'first', -> new Batman.Query(this, limit: 1, offset: 0)
+  @classAccessor 'last', -> new Batman.Query(this, limit: 1, offset: -1)
 
   @clear: ->
     Batman.initializeObject(@)
@@ -108,33 +97,7 @@ class Batman.Model extends Batman.Object
     result
 
   @find: (id, callback) ->
-    @findWithOptions(id, undefined, callback)
-
-  @findWithOptions: (id, options = {}, callback) ->
-    Batman.developer.assert callback, "Must call find with a callback!"
-    record = new this
-    record._withoutDirtyTracking -> @set 'id', id
-    record.loadWithOptions options, callback
-    return record
-
-  @load: (options, callback) ->
-    if typeof options in ['function', 'undefined']
-      callback = options
-      options = {}
-    else
-      options = { data: options }
-
-    @loadWithOptions options, callback
-  
-  @loadWithOptions: (options, callback) ->
-    @fire 'loading', options
-    @_doStorageOperation 'readAll', options, (err, records, env) =>
-      if err?
-        @fire 'error', err
-        callback?(err, [])
-      else
-        @fire 'loaded', records, env
-        callback?(err, records, env)
+    Batman.DataStore.forModel(this).record(id)
 
   @create: (attrs, callback) ->
     if !callback
@@ -157,7 +120,7 @@ class Batman.Model extends Batman.Object
     @_makeOrFindRecordFromData(json)
 
   @_loadIdentity: (id) ->
-    @get('loaded.indexedByUnique.id').get(id)
+    Batman.DataStore.forModel(this).record(id)
 
   @_loadRecord: (attributes) ->
     if id = attributes[@primaryKey]
@@ -179,6 +142,11 @@ class Batman.Model extends Batman.Object
     newRecords
 
   @_mapIdentity: (record) ->
+    if (id = record.get('id'))?
+      record = Batman.DataStore.forModel(@constructor).record(id)
+
+    return record
+
     if (id = record.get('id'))?
       if existing = @_loadIdentity(id)
         lifecycle = existing.get('lifecycle')
@@ -265,43 +233,18 @@ class Batman.Model extends Batman.Object
       super()
       @set('id', idOrAttributes)
 
+  @fromRecord: (record) ->
+    instance = new this(record.id)
+    record.forEach (key, value) ->
+      instance.set(key, value)
+
+    instance.proxy = record
+    return instance
+
   @accessor 'lifecycle', -> @lifecycle ||= new Batman.Model.InstanceLifecycleStateMachine('clean', @)
-  @accessor 'attributes', -> @attributes ||= new Batman.Hash
-  @accessor 'dirtyKeys', -> @dirtyKeys ||= new Batman.Hash
-  @accessor '_dirtiedKeys', -> @_dirtiedKeys ||= new Batman.SimpleSet
   @accessor 'errors', -> @errors ||= new Batman.ErrorsSet
   @accessor 'isNew', -> @isNew()
   @accessor 'isDirty', -> @isDirty()
-
-  # Default accessor implementing the latching draft behaviour
-  @accessor Model.defaultAccessor =
-    get: (k) -> Batman.getPath @, ['attributes', k]
-    set: (k, v) ->
-      if @_willSet(k)
-        @get('attributes').set(k, v)
-      else
-        @get(k)
-    unset: (k) -> @get('attributes').unset(k)
-
-  # Add a universally accessible accessor for retrieving the primary key, regardless of which key its stored under.
-  @wrapAccessor 'id', (core) ->
-    get: ->
-      primaryKey = @constructor.primaryKey
-      if primaryKey == 'id'
-        core.get.apply(@, arguments)
-      else
-        @get(primaryKey)
-    set: (key, value) ->
-      # naively coerce string ids into integers
-      if (typeof value is "string") and (value.match(/[^0-9]/) is null) and ("#{parsedValue = parseInt(value, 10)}" is value)
-        value = parsedValue
-
-      primaryKey = @constructor.primaryKey
-      if primaryKey == 'id'
-        @_willSet(key)
-        core.set.apply(@, arguments)
-      else
-        @set(primaryKey, value)
 
   isNew: -> typeof @get('id') is 'undefined'
   isDirty: -> @get('lifecycle.state') == 'dirty'
@@ -485,16 +428,6 @@ class Batman.Model extends Batman.Object
     proxies = @_batman.associationProxies ||= {}
     proxies[association.label] ||= new association.proxyClass(association, @)
     proxies[association.label]
-
-  _willSet: (key) ->
-    return true if @_pauseDirtyTracking
-    if @get('lifecycle').startTransition 'set'
-      unless @get('_dirtiedKeys').has(key)
-        @set "dirtyKeys.#{key}", @get(key)
-        @get('_dirtiedKeys').add(key)
-      true
-    else
-      false
 
   _doStorageOperation: (operation, options, callback) ->
     Batman.developer.assert @hasStorage(), "Can't #{operation} model #{Batman.functionName(@constructor)} without any storage adapters!"
