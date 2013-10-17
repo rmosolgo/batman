@@ -63,6 +63,9 @@ class Batman.App extends Batman.Object
     Batman.currentApp = @
     Batman.App.set('current', @)
 
+    unless @get('dataStore')?
+      @set 'dataStore', new Batman.DataStore
+
     unless @get('dispatcher')?
       @set 'dispatcher', new Batman.Dispatcher(@, @get('routeMap'))
       @set 'controllers', @get('dispatcher.controllers')

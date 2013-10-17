@@ -3,5 +3,5 @@ class Batman.RestStorage2 extends Batman.StorageAdapter
 
   fetchAll: (options, callback) ->
     new Batman.Request url: "/#{@model.storageKey}.json", success: (json) =>
-      Batman.DataStore.forModel(@model).populate(json)
+      Batman.currentApp.dataStore.populate(json, @model)
       callback?()

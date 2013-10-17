@@ -9,6 +9,7 @@ console.log = (options...) ->
 
 class Batman.Query extends Batman.Object
   constructor: (@model, @options = {limit: 0, offset: 0}) ->
+    @options.model = @model if @model
 
   where: (options) ->
     @options.where = options
@@ -31,12 +32,16 @@ class Batman.Query extends Batman.Object
   offset: (amount) ->
     @options.offset = amount
 
+  # bind: ->
+  #   dataStore = Batman.currentApp.dataStore
+  #   if @model
+  #     dataStore.on(@model.resourceName)
+
   find: ->
-    Batman.DataStore.forModel(@model).query(@options)
+    Batman.currentApp.dataStore.query(@options)
 
   fetch: (callback) ->
     @isFetched = true
-    # new Batman.Request options, callback
     console.log "NEW REQUEST"
 
     adapter = @model.storageAdapter()
@@ -47,58 +52,68 @@ class Batman.Query extends Batman.Object
       adapter.fetchAll(@options, callback)
 
   valueForBinding: ->
+    console.count "valueForBinding"
     @fetch() if not @isFetched
+    # @bind()
     @find()
 
   toString: ->
     @valueForBinding() || "Loading..."
 
-class Batman.DataStore extends Batman.Hash
-  @forModel: (modelClass) ->
-    @stores ||= {}
-    @stores[modelClass.storageKey] ||= new Batman.DataStore(modelClass)
-
-  constructor: (@modelClass) ->
-    super()
+class Batman.DataStore
+  constructor: ->
+    @storage = new Batman.Set
+    @byModel = {}
 
   query: (options) ->
     return @querySingle(options) if options.limit == 1
 
-    for id in @keys()
-      @modelClass.fromRecord(@get(id))
+    if model = options.model
+      @modelStorage(model).forEach (id, record) ->
+        model.fromRecord(record)
 
   querySingle: (options) ->
     if options.offset < 0
       return @storage[@storage.length + options.offset]
 
-  record: (id) ->
-    record = @getOrSet id, =>
-      new Batman.DataStoreRecord(this, id)
+  modelStorage: (modelClassOrName) ->
+    @byModel[if typeof modelClassOrName is 'function' then modelClassOrName.resourceName else modelClassOrName] ||= new Batman.Hash
 
-    return record
+  record: (model, id, _addedRecords) ->
+    modelStorage = @modelStorage(model)
+    modelStorage.getOrSet id, ->
+      record = new Batman.DataStoreRecord(id, model: model)
+      Batman.currentApp.dataStore.storage.add(record)
+      _addedRecords?.push(record)
+      return record
 
-  populate: (json) ->
-    for result in json
-      record = @record(result.id)
-      record.mixinClean(result)
-      record
+  populate: (json, modelToForce) ->
+    modelStorage = @modelStorage(modelToForce)
 
-class Batman.DataStoreRecord extends Batman.Hash
-  constructor: (@dataStore, @id) ->
-    super()
-    @dirtyKeys = []
+    addedRecords = []
+    modelStorage._preventMutationEvents =>
+      for result in json
+        record = @record(modelToForce, result.id, addedRecords)
+        record.mixinClean(result)
+        record
+      return null
+
+    modelStorage.fire('itemsWereAdded', addedRecords.map((record) -> record.id), addedRecords) if addedRecords.length
+    modelStorage.fire('change', modelStorage, modelStorage)
+
+class Batman.DataStoreRecord
+  constructor: (@id, values) ->
+    @_dirtyKeys = []
+    @mixinClean(values) if values
 
   mixinClean: (values) ->
     @noDirtyTracking = true
-    @mixin(values)
+    @set(key, value) for key, value of values
     @noDirtyTracking = false
 
   set: (key, value) ->
-    @dirtyKeys.push(key) unless @noDirtyTracking
-    super
+    @_dirtyKeys.push(key) unless @noDirtyTracking
+    @[key] = value
 
-  # fetch: ->
-  #   @dataStore.fetchRecord(@id)
-
-  # commit: (values) ->
-  #   @mixin(values)
+  dirtyKeys: ->
+    @_dirtyKeys.unique()

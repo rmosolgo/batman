@@ -84,7 +84,7 @@ class Batman.Model extends Batman.Object
         Batman.developer.error("Please define #{Batman.functionName(@)}.resourceName in order for your model to be minification safe.") if Batman.config.minificationErrors
         Batman.helpers.underscore(Batman.functionName(@))
 
-  @classAccessor 'all', -> new Batman.Query(this)
+  @classAccessor 'all', -> console.log 'create all'; new Batman.Query(this)
 
   @classAccessor 'first', -> new Batman.Query(this, limit: 1, offset: 0)
   @classAccessor 'last', -> new Batman.Query(this, limit: 1, offset: -1)
@@ -235,7 +235,7 @@ class Batman.Model extends Batman.Object
 
   @fromRecord: (record) ->
     instance = new this(record.id)
-    record.forEach (key, value) ->
+    for own key, value of record
       instance.set(key, value)
 
     instance.proxy = record
