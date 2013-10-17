@@ -84,99 +84,44 @@ class Batman.Model extends Batman.Object
         Batman.developer.error("Please define #{Batman.functionName(@)}.resourceName in order for your model to be minification safe.") if Batman.config.minificationErrors
         Batman.helpers.underscore(Batman.functionName(@))
 
-  @classAccessor 'all', -> console.log 'create all'; new Batman.Query(this)
+  @classAccessor 'all', -> new Batman.Query(this)
 
   @classAccessor 'first', -> new Batman.Query(this, limit: 1, offset: 0)
   @classAccessor 'last', -> new Batman.Query(this, limit: 1, offset: -1)
 
-  @clear: ->
-    Batman.initializeObject(@)
-    result = @get('loaded').clear()
-    @_batman.get('associations')?.reset()
-    @_resetPromises()
-    result
-
   @find: (id, callback) ->
-    Batman.DataStore.forModel(this).record(id)
+    query = new Batman.Query(this, id: id)
+    query.fetch(callback) if callback
+    query.find()
 
   @create: (attrs, callback) ->
     if !callback
       [attrs, callback] = [{}, attrs]
+
     record = new this(attrs)
     record.save(callback)
     record
 
   @findOrCreate: (attrs, callback) ->
-    record = @_loadIdentity(attrs[@primaryKey])
+    query = new Batman.Query(this, id: attrs[@primaryKey])
+    record = query.find()
+
     if record
       record.mixin(attrs)
-      callback(undefined, record)
+      callback?(undefined, record)
     else
       record = new this(attrs)
       record.save(callback)
-    record
+
+    return record
 
   @createFromJSON: (json) ->
-    @_makeOrFindRecordFromData(json)
-
-  @_loadIdentity: (id) ->
-    Batman.DataStore.forModel(this).record(id)
-
-  @_loadRecord: (attributes) ->
-    if id = attributes[@primaryKey]
-      record = @_loadIdentity(id)
+    if id = json[@primaryKey]
+      record = new Batman.Query(this, id: id)
 
     record ||= new this
     record._withoutDirtyTracking -> @fromJSON(attributes)
     record
-
-  @_makeOrFindRecordFromData: (attributes) ->
-    record = @_loadRecord(attributes)
-    @_mapIdentity(record)
-
-  @_makeOrFindRecordsFromData: (attributeSet) ->
-    newRecords = for attributes in attributeSet
-      @_loadRecord(attributes)
-
-    @_mapIdentities(newRecords)
-    newRecords
-
-  @_mapIdentity: (record) ->
-    if (id = record.get('id'))?
-      record = Batman.DataStore.forModel(@constructor).record(id)
-
-    return record
-
-    if (id = record.get('id'))?
-      if existing = @_loadIdentity(id)
-        lifecycle = existing.get('lifecycle')
-        lifecycle.load()
-        existing._withoutDirtyTracking ->
-          attributes = record.get('attributes')?.toObject()
-          @mixin(attributes) if attributes
-        lifecycle.loaded()
-        record = existing
-      else
-        @get('loaded').add(record)
-    record
-
-  @_mapIdentities: (records) ->
-    newRecords = []
-    for record, index in records
-      if not (id = record.get('id'))?
-        continue
-      else if existing = @_loadIdentity(id)
-        lifecycle = existing.get('lifecycle')
-        lifecycle.load()
-        existing._withoutDirtyTracking ->
-          attributes = record.get('attributes')?.toObject()
-          @mixin(attributes) if attributes
-        lifecycle.loaded()
-        records[index] = existing
-      else
-        newRecords.push record
-    @get('loaded').add(newRecords...) if newRecords.length
-    return records
 
   @_doStorageOperation: (operation, options, callback) ->
     Batman.developer.assert @::hasStorage(), "Can't #{operation} model #{Batman.functionName(@constructor)} without any storage adapters!"
@@ -251,7 +196,7 @@ class Batman.Model extends Batman.Object
 
   updateAttributes: (attrs) ->
     @mixin(attrs)
-    @
+    return this
 
   toString: ->
     "#{@constructor.get('resourceName')}: #{@get('id')}"

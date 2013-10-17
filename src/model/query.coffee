@@ -8,8 +8,8 @@ console.log = (options...) ->
   return null
 
 class Batman.Query extends Batman.Object
-  constructor: (@model, @options = {limit: 0, offset: 0}) ->
-    @options.model = @model if @model
+  constructor: (model, @options = {limit: 0, offset: 0}) ->
+    @options.model = model if model
 
   where: (options) ->
     @options.where = options
@@ -32,21 +32,24 @@ class Batman.Query extends Batman.Object
   offset: (amount) ->
     @options.offset = amount
 
-  # bind: ->
-  #   dataStore = Batman.currentApp.dataStore
-  #   if @model
-  #     dataStore.on(@model.resourceName)
+  _isSingleRecord: ->
+    @options.id? or @options.limit == 1
 
   find: ->
-    Batman.currentApp.dataStore.query(@options)
+    if @_isSingleRecord()
+      record = Batman.currentApp.dataStore.querySingle(@options)
+      return @options.model.fromRecord(record) if record
+    else
+      records = Batman.currentApp.dataStore.query(@options)
+      for record in records
+        @options.model.fromRecord(record) if record
 
   fetch: (callback) ->
     @isFetched = true
-    console.log "NEW REQUEST"
 
-    adapter = @model.storageAdapter()
+    adapter = @options.model.storageAdapter()
 
-    if @options.limit > 0
+    if @_isSingleRecord()
       adapter.fetch(@options, callback)
     else
       adapter.fetchAll(@options, callback)
@@ -54,7 +57,6 @@ class Batman.Query extends Batman.Object
   valueForBinding: ->
     console.count "valueForBinding"
     @fetch() if not @isFetched
-    # @bind()
     @find()
 
   toString: ->
@@ -66,13 +68,14 @@ class Batman.DataStore
     @byModel = {}
 
   query: (options) ->
-    return @querySingle(options) if options.limit == 1
-
     if model = options.model
       @modelStorage(model).forEach (id, record) ->
-        model.fromRecord(record)
+        record
 
   querySingle: (options) ->
+    if options.id?
+      return @modelStorage(options.model).get(options.id)
+
     if options.offset < 0
       return @storage[@storage.length + options.offset]
 
@@ -87,19 +90,30 @@ class Batman.DataStore
       _addedRecords?.push(record)
       return record
 
-  populate: (json, modelToForce) ->
-    modelStorage = @modelStorage(modelToForce)
+  populate: (model, json) ->
+    modelStorage = @modelStorage(model)
 
     addedRecords = []
-    modelStorage._preventMutationEvents =>
-      for result in json
-        record = @record(modelToForce, result.id, addedRecords)
-        record.mixinClean(result)
-        record
+    changedRecords = []
+
+    buildRecord = (data) =>
+      record = @record(model, data.id, addedRecords)
+      record.mixinClean(data)
+      changedRecords.push(record)
+
+    modelStorage._preventMutationEvents ->
+      if Batman.typeOf(json) is 'Array'
+        for data in json
+          buildRecord(data)
+      else
+        buildRecord(json)
+
       return null
 
     modelStorage.fire('itemsWereAdded', addedRecords.map((record) -> record.id), addedRecords) if addedRecords.length
     modelStorage.fire('change', modelStorage, modelStorage)
+
+    return changedRecords
 
 class Batman.DataStoreRecord
   constructor: (@id, values) ->
