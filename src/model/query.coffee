@@ -76,8 +76,11 @@ class Batman.DataStore
     if options.id?
       return @modelStorage(options.model).get(options.id)
 
+    index = options.offset
     if options.offset < 0
-      return @storage[@storage.length + options.offset]
+      index = @storage.length + options.offset
+
+    return @storage.at(index)
 
   modelStorage: (modelClassOrName) ->
     @byModel[if typeof modelClassOrName is 'function' then modelClassOrName.resourceName else modelClassOrName] ||= new Batman.Hash
