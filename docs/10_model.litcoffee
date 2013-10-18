@@ -354,7 +354,13 @@ For the two main `StorageAdapter`s batman.js provides, the `options` do differen
 
 ## @create(attributes = {}, callback) : Model
 
+`Model.create()` builds a new instance of the `Model` and attempts to persist it after setting the passed in `attributes`. 
+`Model.create()` will return the new instance, after calling `Model.save()` with the supplied `callback`. 
+
 ## @findOrCreate(attributes = {}, callback) : Model
+
+`Model.findOrCreate()` will attempt a `Model.find()` using the supplied `attributes`. If `Model.find()` doesn't produce a 
+result the record will be created using the supplied `attributes` and the supplied `callback`.
 
 ## id : value
 
