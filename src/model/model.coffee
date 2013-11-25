@@ -125,7 +125,7 @@ class Batman.Model extends Batman.Object
       options = { data: options }
 
     @loadWithOptions options, callback
-  
+
   @loadWithOptions: (options, callback) ->
     @fire 'loading', options
     @_doStorageOperation 'readAll', options, (err, records, env) =>
@@ -264,6 +264,9 @@ class Batman.Model extends Batman.Object
     else
       super()
       @set('id', idOrAttributes)
+    @_hookUpCallbacks()
+    @
+
 
   @accessor 'lifecycle', -> @lifecycle ||= new Batman.Model.InstanceLifecycleStateMachine('clean', @)
   @accessor 'attributes', -> @attributes ||= new Batman.Hash
@@ -510,4 +513,39 @@ class Batman.Model extends Batman.Object
 
 
   for functionName in ['load', 'save', 'validate', 'destroy']
-   @::[functionName] = Batman.Property.wrapTrackingPrevention(@::[functionName])
+    @::[functionName] = Batman.Property.wrapTrackingPrevention(@::[functionName])
+
+  @_callbackMapping:
+    beforeCreate: "creating"
+    afterCreate: "created"
+
+  @_callbacks: {}
+
+  @_defineCallbackRegistrationMethod: (methodName, recordState) ->
+    console.log("setting up #{methodName} => #{recordState}")
+    @[methodName] = (callback) ->
+      console.log("#{methodName} callback for #{recordState}")
+      @_callbacks[recordState].push(callback)
+
+  for methodName, recordState of @_callbackMapping
+    @_callbacks[recordState] = []
+    @_defineCallbackRegistrationMethod(methodName, recordState)
+
+
+  _hookUpCallbacks: ->
+    @observe 'lifecycle.state', (newValue, oldValue) =>
+      @_fireCallbacks(newValue)
+
+  _fireCallbacks: (action) ->
+    callbacks = @constructor._callbacks[action]
+    if callbacks?.length
+      console.log("Firing #{callbacks.length} callbacks for #{action}")
+      for callback in callbacks
+        callback.apply(@)
+
+
+
+  # @beforeCreate: (callback) ->
+  #   @_callbacks['creating'].push(callback)
+  # @afterCreate: (callback) ->
+  #   @_callbacks['created'].push(callback)
