@@ -511,12 +511,10 @@ class Batman.Model extends Batman.Object
     @_pauseDirtyTracking = false
     result
 
-
   for functionName in ['load', 'save', 'validate', 'destroy']
     @::[functionName] = Batman.Property.wrapTrackingPrevention(@::[functionName])
 
-
-  @_callbackNames: ['beforeInitialize', 'afterInitialize', 'beforeCreate', 'afterCreate', 'beforeUpdate', 'afterUpdate', 'beforeDestroy', 'afterDestroy']
+  @_callbackNames: ['beforeCreate', 'afterCreate', 'beforeUpdate', 'afterUpdate', 'beforeDestroy', 'afterDestroy']
   @_callbacks: {}
   @_defineCallbackRegistrationMethod: (methodName, recordState) ->
     @[methodName] = (callback) ->
@@ -545,7 +543,3 @@ class Batman.Model extends Batman.Object
     if callbacks
       for callback in callbacks
         callback.apply(@)
-
-
-
-
