@@ -515,37 +515,37 @@ class Batman.Model extends Batman.Object
   for functionName in ['load', 'save', 'validate', 'destroy']
     @::[functionName] = Batman.Property.wrapTrackingPrevention(@::[functionName])
 
-  @_callbackMapping:
-    beforeCreate: "creating"
-    afterCreate: "created"
 
+  @_callbackNames: ['beforeInitialize', 'afterInitialize', 'beforeCreate', 'afterCreate', 'beforeUpdate', 'afterUpdate', 'beforeDestroy', 'afterDestroy']
   @_callbacks: {}
-
   @_defineCallbackRegistrationMethod: (methodName, recordState) ->
-    console.log("setting up #{methodName} => #{recordState}")
     @[methodName] = (callback) ->
-      console.log("#{methodName} callback for #{recordState}")
-      @_callbacks[recordState].push(callback)
+      callbacks = @_callbacks[methodName]
+      if callback not in callbacks
+        callbacks.push(callback)
 
-  for methodName, recordState of @_callbackMapping
-    @_callbacks[recordState] = []
-    @_defineCallbackRegistrationMethod(methodName, recordState)
-
+  for callbackName in @_callbackNames
+    @_callbacks[callbackName] = []
+    @_defineCallbackRegistrationMethod(callbackName)
 
   _hookUpCallbacks: ->
-    @observe 'lifecycle.state', (newValue, oldValue) =>
-      @_fireCallbacks(newValue)
+    lifecycle = @get('lifecycle')
+    lifecycle.onEnter('creating', => @_fireCallbacks('beforeCreate')) if @_hasCallbacks('beforeCreate')
+    lifecycle.onExit('creating', => @_fireCallbacks('afterCreate')) if @_hasCallbacks('afterCreate')
+    lifecycle.onEnter('saving', => @_fireCallbacks('beforeUpdate')) if @_hasCallbacks('beforeUpdate')
+    lifecycle.onExit('saving', => @_fireCallbacks('afterUpdate')) if @_hasCallbacks('afterUpdate')
+    lifecycle.onEnter('destroying', => @_fireCallbacks('beforeDestroy')) if @_hasCallbacks('beforeDestroy')
+    lifecycle.onExit('destroying', => @_fireCallbacks('afterDestroy')) if @_hasCallbacks('afterDestroy')
 
-  _fireCallbacks: (action) ->
-    callbacks = @constructor._callbacks[action]
-    if callbacks?.length
-      console.log("Firing #{callbacks.length} callbacks for #{action}")
+  _hasCallbacks: (callbackName) ->
+    !!@constructor._callbacks[callbackName]
+
+  _fireCallbacks: (callbackName) ->
+    callbacks = @constructor._callbacks[callbackName]
+    if callbacks
       for callback in callbacks
         callback.apply(@)
 
 
 
-  # @beforeCreate: (callback) ->
-  #   @_callbacks['creating'].push(callback)
-  # @afterCreate: (callback) ->
-  #   @_callbacks['created'].push(callback)
+
