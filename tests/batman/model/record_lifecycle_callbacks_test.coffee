@@ -71,6 +71,8 @@ test 'destroying an existing record fires Destroy then Commit callbacks', ->
 QUnit.module "Batman.Model record lifecycle callbacks",
   setup: ->
     @beforeCreateSpy = beforeCreateSpy = createSpy()
+    @beforeSaveSpy = beforeSaveSpy = createSpy()
+
     class @Product extends Batman.Model
       @encode 'name'
       @persist TestStorageAdapter
@@ -78,6 +80,7 @@ QUnit.module "Batman.Model record lifecycle callbacks",
       @beforeCreate -> beforeCreateSpy()
       @beforeCreate -> beforeCreateSpy()
 
+      @beforeSave (-> beforeSaveSpy()), if: (-> return false)
       @beforeDestroy -> return false
 
 test 'each callback is fired', ->
@@ -86,11 +89,16 @@ test 'each callback is fired', ->
     equal @beforeCreateSpy.callCount, 2
 
 test 'if a filter returns false, the operation is prevented', ->
-  destroyCallbackSpy = createSpy
+  destroyCallbackSpy = createSpy()
   @Product.find 10, (err, product) =>
     product.destroy (err, prod) =>
       destroyCallbackSpy()
 
   @Product.find 10, (err, product) =>
     ok product, "The product is still there"
-    equal destroyCallbackSpy.callCount, undefined, "The callback isn't fired"
+    equal destroyCallbackSpy.callCount, 0, "The callback isn't fired"
+
+test 'filters use `if` functions', ->
+  @Product.find 10, (err, product) =>
+    product.save (err, prod) =>
+      equal @beforeSaveSpy.callCount, 0
