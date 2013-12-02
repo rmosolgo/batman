@@ -264,7 +264,6 @@ class Batman.Model extends Batman.Object
     else
       super()
       @set('id', idOrAttributes)
-    @_hookUpCallbacks()
     @
 
 
@@ -412,6 +411,8 @@ class Batman.Model extends Batman.Object
     else
       ['save', 'update', 'saved']
 
+    return false if @fireModelLifecycleEvent("before", storageOperation, options) == false
+
     if @get('lifecycle').startTransition startState
       @validate (error, errors) =>
         if error || errors.length
@@ -438,6 +439,7 @@ class Batman.Model extends Batman.Object
               @get('lifecycle').failedValidation()
             else
               @get('lifecycle').error()
+          @fireModelLifecycleEvent("after", storageOperation, options)
           callback?(err, record || @, env)
     else
       callback?(new Batman.StateMachine.InvalidTransitionError("Can't save while in state #{@get('lifecycle.state')}"))
@@ -446,6 +448,8 @@ class Batman.Model extends Batman.Object
     if !callback
       [options, callback] = [{}, options]
 
+    return false if @fireModelLifecycleEvent('before', 'destroy', options) == false
+
     if @get('lifecycle').destroy()
       @_doStorageOperation 'destroy', {data: options}, (err, record, env) =>
         unless err
@@ -453,6 +457,7 @@ class Batman.Model extends Batman.Object
           @get('lifecycle').destroyed()
         else
           @get('lifecycle').error()
+        @fireModelLifecycleEvent('after', 'destroy', options)
         callback?(err, record, env)
     else
       callback?(new Batman.StateMachine.InvalidTransitionError("Can't destroy while in state #{@get('lifecycle.state')}"))
@@ -514,32 +519,20 @@ class Batman.Model extends Batman.Object
   for functionName in ['load', 'save', 'validate', 'destroy']
     @::[functionName] = Batman.Property.wrapTrackingPrevention(@::[functionName])
 
-  @_callbackNames: ['beforeCreate', 'afterCreate', 'beforeUpdate', 'afterUpdate', 'beforeDestroy', 'afterDestroy']
-  @_callbacks: {}
-  @_defineCallbackRegistrationMethod: (methodName, recordState) ->
-    @[methodName] = (callback) ->
-      callbacks = @_callbacks[methodName]
-      if callback not in callbacks
-        callbacks.push(callback)
+  @classMixin Batman.LifecycleEvents
+  @lifecycleEvent 'create', (options = {}) ->
+    return options
+  @lifecycleEvent 'update', (options = {}) ->
+    return options
+  @lifecycleEvent 'save', (options = {}) ->
+    return options
+  @lifecycleEvent 'destroy', (options = {}) ->
+    return options
+  @lifecycleEvent 'commit', (options = {}) ->
+    return options
 
-  for callbackName in @_callbackNames
-    @_callbacks[callbackName] = []
-    @_defineCallbackRegistrationMethod(callbackName)
-
-  _hookUpCallbacks: ->
-    lifecycle = @get('lifecycle')
-    lifecycle.onEnter('creating', => @_fireCallbacks('beforeCreate')) if @_hasCallbacks('beforeCreate')
-    lifecycle.onExit('creating', => @_fireCallbacks('afterCreate')) if @_hasCallbacks('afterCreate')
-    lifecycle.onEnter('saving', => @_fireCallbacks('beforeUpdate')) if @_hasCallbacks('beforeUpdate')
-    lifecycle.onExit('saving', => @_fireCallbacks('afterUpdate')) if @_hasCallbacks('afterUpdate')
-    lifecycle.onEnter('destroying', => @_fireCallbacks('beforeDestroy')) if @_hasCallbacks('beforeDestroy')
-    lifecycle.onExit('destroying', => @_fireCallbacks('afterDestroy')) if @_hasCallbacks('afterDestroy')
-
-  _hasCallbacks: (callbackName) ->
-    !!@constructor._callbacks[callbackName]
-
-  _fireCallbacks: (callbackName) ->
-    callbacks = @constructor._callbacks[callbackName]
-    if callbacks
-      for callback in callbacks
-        callback.apply(@)
+  fireModelLifecycleEvent: (position, storageOperation, args...) ->
+    return false if @fireLifecycleEvent("#{position}#{Batman.helpers.camelize(storageOperation)}", args...) == false
+    if storageOperation in ["create", "update"]
+      return false if @fireLifecycleEvent("#{position}Save", args...) == false
+    return false if @fireLifecycleEvent("#{position}Commit", args...) == false
