@@ -2,10 +2,6 @@
 
 `Batman.SetProxy` provides a wrapper around a `Batman.Set` which delegates most methods and accessors to the base `Set`. `SetProxy` extends [`Batman.Object`](/docs/api/batman.object.html) and [`Batman.Enumerable`](/docs/api/batman.enumerable.html). To see `Batman.SetProxy` in action, see [`Batman.SetSort`](/docs/api/batman.setsort.html).
 
-## ::constructor(base : Set) SetProxy
-
-Returns a new `SetProxy` tracking `base`.
-
 ## Methods delegated to base
 
 - `add`
@@ -38,6 +34,17 @@ Returns a new `SetProxy` tracking `base`.
 - `sortedBy`
 - `sortedByDescending`
 
+## ::constructor(base : Set) SetProxy
+
+Returns a new `SetProxy` tracking `base`.
+
+## ::startObserving()
+
+Tells the `SetProxy`'s `SetObserver` to start observing `base` and its items. Called by `constructor`.
+
+## ::stopObserving()
+
+Tells the `SetProxy`'s `SetObserver` to start observing `base` and its items.
 
 # /api/Data Structures/Batman.Set/Batman.SetSort
 
