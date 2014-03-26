@@ -30,11 +30,10 @@ test 'unsetting a key makes it dirty', ->
   @trackingHash.unset('artist')
   ok @trackingHash.get('isDirty')
 
-test 'dirtiedKeys is a set of dirty keys', ->
+test 'dirtiedKeys is a collection of dirty keys', ->
   @trackingHash.set('artist', 'Michael McDonald')
   @trackingHash.set('featuredInstrument', 'saxophone')
   dirtiedKeys = @trackingHash.get('dirtiedKeys')
-  ok dirtiedKeys instanceof Batman.Set, "it's a set"
   ok dirtiedKeys.has('artist'), "it has modified keys"
   ok dirtiedKeys.has('featuredInstrument'), "it has new keys"
   ok !dirtiedKeys.has('name'), "it doesnt have clean keys"

@@ -26,11 +26,13 @@ class Batman.TrackingHash extends Batman.Hash
     @get('dirtyKeys').clear()
 
   @accessor 'isClean', -> !@get('isDirty')
-  @accessor 'isDirty', -> !!@get('dirtiedKeys').get('length')
+  @accessor 'isDirty',
+    cache: false
+    get: -> !!@get('dirtiedKeys').length
 
-  @accessor 'dirtyKeys', -> @_dirtyKeys ||= new Batman.Hash
+  @accessor 'dirtyKeys', -> @_dirtyKeys ||= new Batman.SimpleHash
   @accessor '_dirtiedKeys', -> @get('dirtiedKeys')
-  @accessor 'dirtiedKeys', -> @_dirtiedKeys ||= new Batman.Set
+  @accessor 'dirtiedKeys', -> @_dirtiedKeys ||= new Batman.SimpleSet
 
   @defaultAccessor =
     cache: false

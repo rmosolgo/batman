@@ -120,10 +120,10 @@ Returns true if no keys have been dirtied.
 
 Returns true if any keys aren't equal to their original values.
 
-## ::%dirtiedKeys : Batman.Set
+## ::%dirtiedKeys : Batman.SimpleSet
 
-A set containing all keys that have been dirtied.
+A set containing all keys that have been dirtied. It's a `Batman.SimpleSet`, so it can't be observed.
 
-## ::%dirtyKeys : Batman.Hash
+## ::%dirtyKeys : Batman.SimpleHash
 
-When a key is dirtied, it is added to this hash with is _clean value_ as its value.
+When a key is dirtied, it is added to this hash with is _clean value_ as its value. It's a `Batman.SimpleHash`, so it can't be observed.
