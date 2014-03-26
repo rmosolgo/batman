@@ -91,3 +91,39 @@ Returns a plain JavaScript Object with the contents of the `Hash`.
 ## ::toJSON() : Object
 
 Returns a plain JavaScript Object, like `toObject`, but calls `toJSON` on the each value, if it has a `toJSON` method.
+
+# /api/Data Structures/Batman.Hash/Batman.TrackingHash
+
+`Batman.TrackingHash` extends `Batman.Hash` and adds dirty tracking.
+
+    test 'Batman.TrackingHash knows its dirty keys', ->
+      trackingHash = new Batman.TrackingHash(name: "Scarecrow", wearsMask: true)
+      ok trackingHash.get('isClean'), 'it starts clean'
+      trackingHash.set('wearsMask', false)
+      ok trackingHash.get('isDirty'), 'it becomes dirty when a key is set'
+      ok trackingHash.get('dirtiedKeys').has('wearsMask'), 'dirtiedKeys is a set of keys'
+      equal trackingHash.get('dirtyKeys').get('wearsMask'), true, 'dirtyKeys holds the keys and clean values'
+      trackingHash.resetTracking()
+      ok trackingHash.get('isClean'), 'resetTracking treats values as clean'
+      trackingHash.set('weapon', 'fear')
+      ok trackingHash.get('isDirty'), 'setting new keys makes it dirty'
+
+## ::resetTracking(object)
+
+Mixes `object` into _current values_ and treats the result as the new _clean values_ for the `TrackingHash`.
+
+## ::%isClean : Boolean
+
+Returns true if no keys have been dirtied.
+
+## ::%isDirty : Boolean
+
+Returns true if any keys aren't equal to their original values.
+
+## ::%dirtiedKeys : Batman.Set
+
+A set containing all keys that have been dirtied.
+
+## ::%dirtyKeys : Batman.Hash
+
+When a key is dirtied, it is added to this hash with is _clean value_ as its value.

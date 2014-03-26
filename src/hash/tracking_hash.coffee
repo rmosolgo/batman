@@ -2,11 +2,10 @@
 class Batman.TrackingHash extends Batman.Hash
 
   constructor: (obj) ->
-    @_dirtyKeys = new Batman.Hash
-    @_dirtiedKeys = new Batman.Set
+    @originalValues = new Batman.SimpleHash
     @resetTracking(obj)
-    @noTracking = false
     super(obj)
+    @noTracking = false
 
   _markAsDirty: (key) ->
     return if @noTracking
@@ -14,27 +13,24 @@ class Batman.TrackingHash extends Batman.Hash
       cleanValue = @originalValues.get(key)
       @get('dirtyKeys').set(key, cleanValue)
     @get('dirtiedKeys').add(key)
-    @set('isDirty', true)
 
   _markAsClean: (key) ->
+    return if @noTracking
     @get('dirtyKeys').unset(key)
     @get('dirtiedKeys').remove(key)
-    @set('isDirty', false)
 
   resetTracking: (obj) ->
-    obj ?= @toObject()
-    @originalValues = new Batman.SimpleHash(obj)
-    @_dirtyKeys.clear()
-    @_dirtiedKeys.clear()
+    newCleanValues = Batman.mixin({}, @toObject(), obj)
+    @originalValues.replace(newCleanValues)
+    @get('dirtiedKeys').clear()
+    @get('dirtyKeys').clear()
 
   @accessor 'isClean', -> !@get('isDirty')
-  @accessor 'isDirty',
-    get: -> @_isDirty
-    set: (k, v) -> @_isDirty = v
+  @accessor 'isDirty', -> !!@get('dirtiedKeys').get('length')
 
-  @accessor 'dirtyKeys', -> @_dirtyKeys
-  @accessor '_dirtiedKeys', -> @_dirtiedKeys
-  @accessor 'dirtiedKeys', -> @_dirtiedKeys
+  @accessor 'dirtyKeys', -> @_dirtyKeys ||= new Batman.Hash
+  @accessor '_dirtiedKeys', -> @get('dirtiedKeys')
+  @accessor 'dirtiedKeys', -> @_dirtiedKeys ||= new Batman.Set
 
   @defaultAccessor =
     cache: false
@@ -47,7 +43,7 @@ class Batman.TrackingHash extends Batman.Hash
 
       if value != originalValue
         @_markAsDirty(key)
-      else if @get('isDirty') and value == originalValue
+      else if value == originalValue
         @_markAsClean(key)
 
       if oldResult? and oldResult != result
@@ -58,6 +54,7 @@ class Batman.TrackingHash extends Batman.Hash
       result
 
     unset: @mutation (key) ->
+      @_markAsDirty(key)
       result = Batman.SimpleHash::unset.call(this, key)
       @fire('itemsWereRemoved', [key], [result]) if result?
       result

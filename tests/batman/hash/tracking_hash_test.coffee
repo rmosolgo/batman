@@ -22,14 +22,13 @@ test 'setting back previous value makes it clean', ->
   @trackingHash.set('artist', "George Michael")
   ok @trackingHash.get('isClean')
 
-# test 'setting a mutable value makes it dirty'
 test 'setting a new key makes it dirty', ->
   @trackingHash.set("mood", "regretful")
   ok @trackingHash.get('isDirty')
 
 test 'unsetting a key makes it dirty', ->
   @trackingHash.unset('artist')
-  ok @trackingHash.get('isClean')
+  ok @trackingHash.get('isDirty')
 
 test 'dirtiedKeys is a set of dirty keys', ->
   @trackingHash.set('artist', 'Michael McDonald')
