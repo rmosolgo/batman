@@ -252,6 +252,7 @@ class Batman.Model extends Batman.Object
       set:
         from: ['dirty', 'clean']
         to: 'dirty'
+      clean: {dirty: 'clean'}
       error:
         from: ['saving', 'creating', 'loading', 'destroying']
         to: 'error'
@@ -271,9 +272,12 @@ class Batman.Model extends Batman.Object
       @set('id', idOrAttributes)
 
   @accessor 'lifecycle', -> @lifecycle ||= new Batman.Model.InstanceLifecycleStateMachine('clean', @)
-  @accessor 'attributes', -> @attributes ||= new Batman.Hash
-  @accessor 'dirtyKeys', -> @dirtyKeys ||= new Batman.Hash
-  @accessor '_dirtiedKeys', -> @_dirtiedKeys ||= new Batman.SimpleSet
+  @accessor 'attributes', -> @attributes ||= new Batman.TrackingHash
+  @delegate 'dirtyKeys', '_dirtiedKeys', to: 'attributes'
+  resetTracking: (obj) ->
+    obj ?= @get('attributes').toObject()
+    @get('attributes').resetTracking(obj)
+
   @accessor 'errors', -> @errors ||= new Batman.ErrorsSet
   @accessor 'isNew', -> @isNew()
   @accessor 'isDirty', -> @isDirty()
@@ -283,7 +287,10 @@ class Batman.Model extends Batman.Object
     get: (k) -> Batman.getPath @, ['attributes', k]
     set: (k, v) ->
       if @_willSet(k)
-        @get('attributes').set(k, v)
+        value = @get('attributes').set(k, v)
+        if @get('dirtyKeys').length is 0
+          @get('lifecycle').startTransition('clean')
+        value
       else
         @get(k)
     unset: (k) -> @get('attributes').unset(k)
@@ -361,6 +368,8 @@ class Batman.Model extends Batman.Object
 
     # Mixin the buffer object to use optimized and event-preventing sets used by `mixin`.
     @mixin obj
+    @_withoutDirtyTracking ->
+      @resetTracking(obj)
 
   hasStorage: -> @_batman.get('storage')?
 
@@ -430,8 +439,7 @@ class Batman.Model extends Batman.Object
 
         @_doStorageOperation storageOperation, payload, (err, record, env) =>
           unless err
-            @get('dirtyKeys').clear()
-            @get('_dirtiedKeys').clear()
+            @resetTracking()
             if associations
               record._withoutDirtyTracking ->
                 associations.getByType('hasOne')?.forEach (association, label) -> association.apply(err, record)
@@ -516,9 +524,6 @@ class Batman.Model extends Batman.Object
   _willSet: (key) ->
     return true if @_pauseDirtyTracking
     if @get('lifecycle').startTransition 'set'
-      unless @get('_dirtiedKeys').has(key)
-        @set "dirtyKeys.#{key}", @get(key)
-        @get('_dirtiedKeys').add(key)
       true
     else
       false
@@ -534,8 +539,10 @@ class Batman.Model extends Batman.Object
   _withoutDirtyTracking: (block) ->
     return block.call(@) if @_pauseDirtyTracking
     @_pauseDirtyTracking = true
+    @get('attributes').noTracking = true
     result = block.call(@)
     @_pauseDirtyTracking = false
+    @get('attributes').noTracking = false
     result
 
 

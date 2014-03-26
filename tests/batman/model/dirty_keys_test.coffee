@@ -4,7 +4,7 @@ QUnit.module "Batman.Model dirty key tracking",
   setup: ->
     Batman.developer.suppress()
     class @Product extends Batman.Model
-      @encode "foo", "bar"
+      @encode "foo", "bar", "name"
 
     @productAdapter = createStorageAdapter @Product, AsyncTestStorageAdapter,
       products1:
@@ -52,7 +52,7 @@ asyncTest "saving clears dirty keys", ->
   product = new @Product foo: 'bar', id: 1
   product.save (err) ->
     throw err if err
-    equal(product.dirtyKeys.length, 0)
+    equal(product.get('dirtyKeys').length, 0)
     notEqual(product.lifecycle.get('state'), 'dirty')
     QUnit.start()
 
@@ -88,3 +88,29 @@ asyncTest "no keys are dirty upon instance load", ->
       equal(product.get('dirtyKeys').length, 0)
       equal(product.get('lifecycle.state'), 'clean')
       QUnit.start()
+
+asyncTest 'setting key to same value doesnt make it dirty', ->
+  @Product.find 1, (err, product) =>
+    throw err if err
+    ok !product.get('isDirty'), "starts clean"
+    product.set('name', "Product One")
+    equal product.get('dirtyKeys').length, 0, "no dirty keys"
+    ok !product.get('isDirty'), "stays clean"
+    QUnit.start()
+
+asyncTest 'setting key to different value does make it dirty', ->
+  @Product.find 1, (err, product) =>
+    throw err if err
+    product.set('name', "Product X")
+    ok product.get('isDirty')
+    QUnit.start()
+
+asyncTest 'setting key to different value, then back again, doesnt make it dirty', ->
+  @Product.find 1, (err, product) =>
+    throw err if err
+    product.set('name', "Product X")
+    ok product.get('isDirty'), "setting different value dirties it"
+    product.set('name', "Product One")
+    equal product.get('dirtyKeys').length, 0, "no dirty keys"
+    ok !product.get('isDirty'), "setting same value cleans it"
+    QUnit.start()
